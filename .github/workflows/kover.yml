@@ -71,6 +71,7 @@ jobs:
           diff-cover "${{ env.COVER_XML }}" \
             --compare-branch origin/${{ github.base_ref || 'main' }} \
             --src-roots src/main/kotlin src/test/kotlin \
+            --report-title "Test Coverage Report" \
             --format markdown:diff-cover.md
 
       - name: Upload reports
