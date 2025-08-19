@@ -111,4 +111,18 @@ class CheckFile1Test {
         // Assert
         assertEquals(-1, result, "Sum of $a and $b should be -1")
     }
+
+    @Test
+    fun testSub() {
+        // Arrange
+        val checkFile1 = CheckFile1()
+        val a = 5
+        val b = 3
+
+        // Act
+        val result = checkFile1.sub(a, b)
+
+        // Assert
+        assertEquals(2, result, "Subtraction of $a and $b should be 2")
+    }
 }
