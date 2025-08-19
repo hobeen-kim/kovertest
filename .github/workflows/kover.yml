@@ -64,17 +64,13 @@ jobs:
             --src-roots src/main/kotlin src/test/kotlin \
             --format html:diff-cover.html
 
-      # 3) PR 코멘트/리뷰용 Markdown, 머신 파싱용 JSON
+      # 3) PR 코멘트/리뷰용 Markdown
       - name: Diff coverage (Markdown & JSON)
         run: |
           diff-cover "${{ env.COVER_XML }}" \
             --compare-branch origin/${{ github.base_ref || 'main' }} \
             --src-roots src/main/kotlin src/test/kotlin \
             --format markdown:diff-cover.md
-          diff-cover "${{ env.COVER_XML }}" \
-            --compare-branch origin/${{ github.base_ref || 'main' }} \
-            --src-roots src/main/kotlin src/test/kotlin \
-            --format json:diff-cover.json
 
       - name: Upload reports
         uses: actions/upload-artifact@v4
@@ -82,8 +78,12 @@ jobs:
           name: diff-cover-reports
           path: |
             diff-cover.html
-            diff-cover.md
-            diff-cover.json
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()   # 실패해도 실행되게
+        with:
+          files: build/test-results/test/*.xml
 
       # (선택) PR에 Markdown 리포트를 코멘트로 남기기 - 고정 코멘트 업데이트
       - name: Post PR comment (sticky)
