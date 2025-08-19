@@ -81,10 +81,22 @@ jobs:
             diff-cover.html
 
       - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()   # 실패해도 실행되게
+        uses: dorny/test-reporter@v1
+        if: always()  # 테스트가 실패하여도 Report를 보기 위해 `always`로 설정
         with:
-          files: build/test-results/test/*.xml
+          name: Test Report
+          path: build/test-results/**/*.xml
+          reporter: java-junit
+          fail-on-error: true
+
+      - name: Add coverage to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.3
+        with:
+          paths: ${{ github.workspace }}/${{ env.COVER_XML }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
 
       # (선택) PR에 Markdown 리포트를 코멘트로 남기기 - 고정 코멘트 업데이트
       - name: Post PR comment (sticky)

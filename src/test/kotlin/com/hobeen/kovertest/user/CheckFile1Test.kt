@@ -123,6 +123,6 @@ class CheckFile1Test {
         val result = checkFile1.sub(a, b)
 
         // Assert
-        assertEquals(3, result, "Subtraction of $a and $b should be 2")
+        assertEquals(2, result, "Subtraction of $a and $b should be 2")
     }
 }
