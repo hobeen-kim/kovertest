@@ -103,31 +103,28 @@ jobs:
           echo "# 📊 Coverage Report" > pr-comment.md
           echo "" >> pr-comment.md
           echo "- Overall coverage: **${{ steps.jacoco.outputs.coverage-overall }}**" >> pr-comment.md
-          # diff-cover.md의 1~2번째 줄은 제거하고 3번째 줄부터 붙임
-          {
-            echo "### 🔍 Diff Coverage"
-            echo ""
-            echo "|Files|Diff Coverage (%)|Missing lines|"
-            echo "|-----|-----------------|--------------|"
-          
-            tail -n +3 diff-cover.md | while read -r line; do
-            # Summary 시작되면 루프 종료
+          echo "- Changed files coverage: **${{ steps.jacoco.outputs.coverage-changed-files }}**" >> pr-comment.md
+          echo "" >> pr-comment.md
+          echo "## 🔍 Diff Coverage" >> pr-comment.md
+          echo "" >> pr-comment.md
+          echo "|Files|Diff Coverage (%)|Missing lines|" >> pr-comment.md
+          echo "|-----|-----------------|--------------|" >> pr-comment.md
+
+          # diff-cover 결과를 테이블로 변환
+          tail -n +3 diff-cover.md | while read -r line; do
             if [[ "$line" == "## Summary"* ]]; then
-            break
+              break
             fi
-            
             file=$(echo "$line"    | sed -E 's/^- ([^(]+) .*/\1/')
             percent=$(echo "$line" | sed -E 's/.*\(([0-9.]+%)\).*/\1/')
             missing=$(echo "$line" | grep -o 'Missing lines.*' | sed -E 's/Missing lines //')
             if [ -z "$missing" ]; then missing=" "; fi
-            
-            echo "|$file|$percent|$missing|"
-            done
-          
-            echo ""
-            # Summary부터 다시 붙이기
-            awk '/^## Summary/{flag=1} flag' diff-cover.md
-          } > diff-cover-table.md
+            echo "|$file|$percent|$missing|" >> pr-comment.md
+          done
+
+          echo "" >> pr-comment.md
+          # Summary 블록부터 다시 추가
+          awk '/^## Summary/{flag=1} flag' diff-cover.md >> pr-comment.md
 
       - name: Post PR comment (sticky)
         if: github.event_name == 'pull_request'
