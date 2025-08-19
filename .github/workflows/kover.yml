@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      checks: write
       pull-requests: write   # (선택) PR 코멘트/업로드 시 필요
 
     env:
