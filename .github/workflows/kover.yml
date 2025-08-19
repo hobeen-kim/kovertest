@@ -100,12 +100,12 @@ jobs:
 
       - name: Merge coverage reports
         run: |
-          echo "# 📊 Coverage Report" > pr-comment.md
+          echo "# 📊 Test Coverage Report" > pr-comment.md
           echo "" >> pr-comment.md
-          echo "- **Overall coverage: ${{ steps.jacoco.outputs.coverage-overall }}%**" >> pr-comment.md
-          echo "- Changed files coverage: ${{ steps.jacoco.outputs.coverage-changed-files }}%" >> pr-comment.md
+          echo "- **전체 테스트 커버리지: ${{ steps.jacoco.outputs.coverage-overall }}%**" >> pr-comment.md
+          echo "- 수정된 파일의 테스트 커버리지: ${{ steps.jacoco.outputs.coverage-changed-files }}%" >> pr-comment.md
           echo "" >> pr-comment.md
-          echo "## 🔍 Diff Coverage" >> pr-comment.md
+          echo "## 🔍 커밋된 내용의 테스트 커버리지" >> pr-comment.md
           echo "" >> pr-comment.md
           echo "|Files|Diff Coverage (%)|Missing lines|" >> pr-comment.md
           echo "|-----|-----------------|--------------|" >> pr-comment.md
