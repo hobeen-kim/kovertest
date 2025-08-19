@@ -81,13 +81,10 @@ jobs:
             diff-cover.html
 
       - name: Publish Unit Test Results
-        uses: dorny/test-reporter@v1
-        if: always()  # 테스트가 실패하여도 Report를 보기 위해 `always`로 설정
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()   # 실패해도 실행되게
         with:
-          name: Test Report
-          path: build/test-results/**/*.xml
-          reporter: java-junit
-          fail-on-error: true
+          files: build/test-results/test/*.xml
 
       - name: Add coverage to PR
         id: jacoco
