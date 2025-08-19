@@ -92,16 +92,28 @@ jobs:
 
       - name: Add coverage to PR
         id: jacoco
-        uses: madrapps/jacoco-report@v1.3
+        uses: madrapps/jacoco-report@v1.7.2
         with:
           paths: ${{ github.workspace }}/${{ env.COVER_XML }}
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 0
           min-coverage-changed-files: 0
+          comment-type: "summary"
+          pass-emoji: ':green_circle:'
+          fail-emoji: ':red_circle:'
 
-      # (선택) PR에 Markdown 리포트를 코멘트로 남기기 - 고정 코멘트 업데이트
+      - name: Merge coverage reports
+        run: |
+          echo "### 📊 Coverage Report" > pr-comment.md
+          echo "" >> pr-comment.md
+          echo "- Overall coverage: ${{ steps.jacoco.outputs.coverage-overall }}" >> pr-comment.md
+          echo "- Changed files coverage: ${{ steps.jacoco.outputs.coverage-changed-files }}" >> pr-comment.md
+          echo "" >> pr-comment.md
+          echo "### 🔍 Diff Coverage" >> pr-comment.md
+          cat diff-cover.md >> pr-comment.md
+
       - name: Post PR comment (sticky)
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          path: diff-cover.md
+          path: pr-comment.md
