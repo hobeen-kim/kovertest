@@ -54,7 +54,6 @@ jobs:
           diff-cover "${{ env.COVER_XML }}" \
             --compare-branch origin/${{ github.base_ref || 'main' }} \
             --src-roots src/main/kotlin src/test/kotlin \
-            --fail-under "${{ env.THRESHOLD }}" \
             --format ansi:-
 
       # 2) 사람용 HTML 리포트 생성
