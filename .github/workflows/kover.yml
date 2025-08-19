@@ -115,14 +115,24 @@ jobs:
             if [[ "$line" == "## Summary"* ]]; then
               break
             fi
+          
+            if [[ -z "$line" ]]; then
+              continue
+            fi
+          
             file=$(echo "$line"    | sed -E 's/^- ([^(]+) .*/\1/')
             percent=$(echo "$line" | sed -E 's/.*\(([0-9.]+%)\).*/\1/')
             missing=$(echo "$line" | grep -o 'Missing lines.*' | sed -E 's/Missing lines //')
             if [ -z "$missing" ]; then missing=" "; fi
-            echo "|$file|$percent|$missing|" >> pr-comment.md
+          
+            # 경로 앞 6개 컴포넌트 제거
+            short_file=$(echo "$file" | cut -d'/' -f7-)
+
+            echo "|$short_file|$percent|$missing|" >> pr-comment.md
           done
 
           echo "" >> pr-comment.md
+          
           # Summary 블록부터 다시 추가
           awk '/^## Summary/{flag=1} flag' diff-cover.md >> pr-comment.md
 
