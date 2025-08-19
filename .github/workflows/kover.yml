@@ -1,35 +1,94 @@
-name: Measure coverage
+# .github/workflows/diff-coverage.yml
+name: Diff Coverage (Kover + diff-cover)
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: [ main ]
+  push:
+    branches: [ main ]  # 선택: 메인에도 주기적으로 측정
 
 jobs:
-  build:
+  diff-coverage:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-      - name: Generate kover coverage report
-        run: ./gradlew koverXmlReport
+      pull-requests: write   # (선택) PR 코멘트/업로드 시 필요
 
-      - name: Add coverage report to PR
-        id: kover
-        uses: mi-kas/kover-report@v1
+    env:
+      THRESHOLD: "80"        # 변경분 커버리지 최소 기준
+      COVER_XML: build/reports/kover/report.xml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
+          fetch-depth: 0     # merge-base 계산/전체 diff 위해 필수
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Build & Test with Kover XML
+        run: ./gradlew --no-daemon clean test koverXmlReport
+
+      - name: Verify coverage XML exists
+        run: |
+          test -f "${{ env.COVER_XML }}" || {
+            echo "Coverage XML not found at ${{ env.COVER_XML }}"; exit 1;
+          }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install diff-cover
+        run: pip install diff-cover
+
+      # 1) CI 로그용 컬러 텍스트(ANSI) 출력 + 실패 기준 적용
+      - name: Diff coverage (ANSI to log)
+        run: |
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --fail-under "${{ env.THRESHOLD }}" \
+            --format ansi
+
+      # 2) 사람용 HTML 리포트 생성
+      - name: Diff coverage (HTML)
+        run: |
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --format html:diff-cover.html
+
+      # 3) PR 코멘트/리뷰용 Markdown, 머신 파싱용 JSON
+      - name: Diff coverage (Markdown & JSON)
+        run: |
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --format markdown:diff-cover.md
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --format json:diff-cover.json
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: diff-cover-reports
           path: |
-            ${{ github.workspace }}/build/reports/kover/report.xml
-            ${{ github.workspace }}/build/reports/kover/report.xml
-          title: Code Coverage
-          min-coverage-overall: 80
-          min-coverage-changed-files: 80
-          coverage-counter-type: LINE
+            diff-cover.html
+            diff-cover.md
+            diff-cover.json
+
+      # (선택) PR에 Markdown 리포트를 코멘트로 남기기 - 고정 코멘트 업데이트
+      - name: Post PR comment (sticky)
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: diff-cover.md
