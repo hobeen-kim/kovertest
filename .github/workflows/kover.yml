@@ -104,8 +104,30 @@ jobs:
           echo "" >> pr-comment.md
           echo "- Overall coverage: **${{ steps.jacoco.outputs.coverage-overall }}**" >> pr-comment.md
           # diff-cover.md의 1~2번째 줄은 제거하고 3번째 줄부터 붙임
-          echo "# 🔍 Commit Files Coverage" >> pr-comment.md
-          tail -n +3 diff-cover.md >> pr-comment.md
+          {
+            echo "### 🔍 Diff Coverage"
+            echo ""
+            echo "|Files|Diff Coverage (%)|Missing lines|"
+            echo "|-----|-----------------|--------------|"
+          
+            tail -n +3 diff-cover.md | while read -r line; do
+            # Summary 시작되면 루프 종료
+            if [[ "$line" == "## Summary"* ]]; then
+            break
+            fi
+            
+            file=$(echo "$line"    | sed -E 's/^- ([^(]+) .*/\1/')
+            percent=$(echo "$line" | sed -E 's/.*\(([0-9.]+%)\).*/\1/')
+            missing=$(echo "$line" | grep -o 'Missing lines.*' | sed -E 's/Missing lines //')
+            if [ -z "$missing" ]; then missing=" "; fi
+            
+            echo "|$file|$percent|$missing|"
+            done
+          
+            echo ""
+            # Summary부터 다시 붙이기
+            awk '/^## Summary/{flag=1} flag' diff-cover.md
+          } > diff-cover-table.md
 
       - name: Post PR comment (sticky)
         if: github.event_name == 'pull_request'
