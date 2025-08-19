@@ -13,4 +13,13 @@ class CheckFile1 {
     fun mul(a: Int, b: Int): Int {
         return a * b
     }
+
+    fun div(a: Int, b: Int): Int {
+
+        if (b == 0) {
+            return 0
+        }
+
+        return a / b
+    }
 }

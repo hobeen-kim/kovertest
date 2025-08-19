@@ -52,3 +52,8 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+// XML 리포트 생성 태스크
+tasks.register("koverXml") {
+    dependsOn(tasks.named("koverXmlReport"))
+}
+
