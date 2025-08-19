@@ -103,13 +103,12 @@ jobs:
 
       - name: Merge coverage reports
         run: |
-          echo "### 📊 Coverage Report" > pr-comment.md
+          echo "# 📊 Coverage Report" > pr-comment.md
           echo "" >> pr-comment.md
-          echo "- Overall coverage: ${{ steps.jacoco.outputs.coverage-overall }}" >> pr-comment.md
-          echo "- Changed files coverage: ${{ steps.jacoco.outputs.coverage-changed-files }}" >> pr-comment.md
-          echo "" >> pr-comment.md
-          echo "### 🔍 Diff Coverage" >> pr-comment.md
-          cat diff-cover.md >> pr-comment.md
+          echo "- Overall coverage: **${{ steps.jacoco.outputs.coverage-overall }}**" >> pr-comment.md
+          # diff-cover.md의 1~2번째 줄은 제거하고 3번째 줄부터 붙임
+          echo "# 🔍 Commit Files Coverage" > pr-comment.md
+          tail -n +3 diff-cover.md >> pr-comment.md
 
       - name: Post PR comment (sticky)
         if: github.event_name == 'pull_request'
