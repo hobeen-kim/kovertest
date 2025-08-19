@@ -102,8 +102,8 @@ jobs:
         run: |
           echo "# 📊 Coverage Report" > pr-comment.md
           echo "" >> pr-comment.md
-          echo "- Overall coverage: **${{ steps.jacoco.outputs.coverage-overall }}**" >> pr-comment.md
-          echo "- Changed files coverage: **${{ steps.jacoco.outputs.coverage-changed-files }}**" >> pr-comment.md
+          echo "- **Overall coverage: ${{ steps.jacoco.outputs.coverage-overall }}%**" >> pr-comment.md
+          echo "- Changed files coverage: ${{ steps.jacoco.outputs.coverage-changed-files }}%" >> pr-comment.md
           echo "" >> pr-comment.md
           echo "## 🔍 Diff Coverage" >> pr-comment.md
           echo "" >> pr-comment.md
