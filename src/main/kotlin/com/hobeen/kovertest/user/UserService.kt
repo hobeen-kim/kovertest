@@ -61,6 +61,15 @@ class UserService(
         return MeResponse(user.id, user.username, user.displayName, user.email)
     }
 
+    /**
+     * Deletes the currently authenticated user and invalidates the HTTP session.
+     *
+     * Retrieves the user id from the provided HttpSession, deletes that user from the repository,
+     * and then invalidates the session so the user is logged out.
+     *
+     * @param session HTTP session containing the authenticated user's id under `SESSION_USER_ID`.
+     * @throws SecurityException if no user id is present in the session (user not logged in).
+     */
     @Transactional
     fun deleteMe(session: HttpSession) {
         val id = session.getAttribute(SESSION_USER_ID) as Long?
@@ -69,6 +78,12 @@ class UserService(
         session.invalidate()
     }
 
+    /**
+     * Returns a simple greeting string incorporating the provided name.
+     *
+     * @param a Name or text to include in the greeting.
+     * @return A greeting in the format `hello <a>!!`.
+     */
     fun test(a: String): String {
         return "hello $a!!"
     }
