@@ -9,4 +9,8 @@ class CheckFile2 {
     fun sayAnything(a: String): String {
         return "Hello $a!!"
     }
+
+    fun sayGoodBye(a: String): String {
+        return "Good Bye $a"
+    }
 }

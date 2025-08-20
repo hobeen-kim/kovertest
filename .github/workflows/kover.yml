@@ -134,7 +134,15 @@ jobs:
           echo "" >> pr-comment.md
           
           # Summary 블록부터 다시 추가
-          awk '/^## Summary/{flag=1} flag' diff-cover.md >> pr-comment.md
+          awk 'BEGIN{flag=0; inblock=0}
+            /^## Summary/ {flag=1}
+            flag {
+            if ($0 ~ /^```/) {
+            if (inblock==0) { print "```diff"; inblock=1; next }
+            else { inblock=0; print "```"; next }
+          }
+            print
+          }' diff-cover.md >> pr-comment.md
 
       - name: Post PR comment (sticky)
         if: github.event_name == 'pull_request'
