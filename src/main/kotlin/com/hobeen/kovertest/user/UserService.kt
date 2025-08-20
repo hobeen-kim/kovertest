@@ -68,4 +68,8 @@ class UserService(
         userRepository.deleteById(id)
         session.invalidate()
     }
+
+    fun test(a: String): String {
+        return "hello $a!!"
+    }
 }

@@ -1,0 +1,151 @@
+# .github/workflows/diff-coverage.yml
+name: Diff Coverage (Kover + diff-cover)
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]  # 선택: 메인에도 주기적으로 측정
+
+jobs:
+  diff-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write   # (선택) PR 코멘트/업로드 시 필요
+
+    env:
+      THRESHOLD: "80"        # 변경분 커버리지 최소 기준
+      COVER_XML: build/reports/kover/report.xml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # merge-base 계산/전체 diff 위해 필수
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Build & Test with Kover XML
+        run: ./gradlew --no-daemon clean test koverXmlReport
+
+      - name: Verify coverage XML exists
+        run: |
+          test -f "${{ env.COVER_XML }}" || {
+            echo "Coverage XML not found at ${{ env.COVER_XML }}"; exit 1;
+          }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install diff-cover
+        run: pip install diff-cover
+
+      # 1) CI 로그용 컬러 텍스트(ANSI) 출력 + 실패 기준 적용
+      - name: Diff coverage (ANSI to log)
+        run: |
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --format ansi:-
+
+      # 2) 사람용 HTML 리포트 생성
+      - name: Diff coverage (HTML)
+        run: |
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --format html:diff-cover.html
+
+      # 3) PR 코멘트/리뷰용 Markdown
+      - name: Diff coverage (Markdown & JSON)
+        run: |
+          diff-cover "${{ env.COVER_XML }}" \
+            --compare-branch origin/${{ github.base_ref || 'main' }} \
+            --src-roots src/main/kotlin src/test/kotlin \
+            --format markdown:diff-cover.md
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: diff-cover-reports
+          path: |
+            diff-cover.html
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()   # 실패해도 실행되게
+        with:
+          files: build/test-results/test/*.xml
+
+      - name: Add coverage to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.7.2
+        with:
+          paths: ${{ github.workspace }}/${{ env.COVER_XML }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
+          comment-type: "summary"
+          pass-emoji: ':green_circle:'
+          fail-emoji: ':red_circle:'
+
+      - name: Merge coverage reports
+        run: |
+          echo "# 📊 Test Coverage Report" > pr-comment.md
+          echo "" >> pr-comment.md
+          echo "- **전체 테스트 커버리지: ${{ steps.jacoco.outputs.coverage-overall }}%**" >> pr-comment.md
+          echo "- 수정된 파일의 테스트 커버리지: ${{ steps.jacoco.outputs.coverage-changed-files }}%" >> pr-comment.md
+          echo "" >> pr-comment.md
+          echo "## 🔍 커밋된 내용의 테스트 커버리지" >> pr-comment.md
+          echo "" >> pr-comment.md
+          echo "|Files|Diff Coverage (%)|Missing lines|" >> pr-comment.md
+          echo "|-----|-----------------|--------------|" >> pr-comment.md
+
+          # diff-cover 결과를 테이블로 변환
+          tail -n +3 diff-cover.md | while read -r line; do
+            if [[ "$line" == "## Summary"* ]]; then
+              break
+            fi
+          
+            if [[ -z "$line" ]]; then
+              continue
+            fi
+          
+            file=$(echo "$line"    | sed -E 's/^- ([^(]+) .*/\1/')
+            percent=$(echo "$line" | sed -E 's/.*\(([0-9.]+%)\).*/\1/')
+            missing=$(echo "$line" | grep -o 'Missing lines.*' | sed -E 's/Missing lines //')
+            if [ -z "$missing" ]; then missing=" "; fi
+          
+            # 경로 앞 6개 컴포넌트 제거
+            short_file=$(echo "$file" | cut -d'/' -f7-)
+
+            echo "|$short_file|$percent|$missing|" >> pr-comment.md
+          done
+
+          echo "" >> pr-comment.md
+          
+          # Summary 블록부터 다시 추가
+          awk 'BEGIN{flag=0; inblock=0}
+            /^## Summary/ {flag=1}
+            flag {
+            if ($0 ~ /^```/) {
+            if (inblock==0) { print "```diff"; inblock=1; next }
+            else { inblock=0; print "```"; next }
+          }
+            print
+          }' diff-cover.md >> pr-comment.md
+
+      - name: Post PR comment (sticky)
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: pr-comment.md
